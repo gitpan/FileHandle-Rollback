@@ -11,7 +11,10 @@ use Test;
 BEGIN { plan tests => 12 };
 
 
-use Rollback;
+# TESTING
+use lib '../../';
+
+use FileHandle::Rollback;
 use strict;
 use Fcntl ':flock';
 

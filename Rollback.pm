@@ -7,8 +7,9 @@ use 5.000;
 use vars qw($VERSION @ISA);
 @ISA = qw(IO::Handle IO::Seekable);
 
+
 # version
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 
 =head1 NAME
@@ -560,6 +561,16 @@ F<miko@idocs.com>
 
 =head1 VERSION
 
- Version 1.00    June 29, 2002
+=over 4
 
+=item Version 1.00, June 29, 2002
+
+First public release.
+
+=item Version 1.01, June 30, 2002
+
+Minor tweaks to 1.00
+
+
+=back
 =cut
