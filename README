@@ -1,8 +1,9 @@
-FileHandle/Rollback version 1.04
+FileHandle/Rollback version 1.05
 ========================
 
 NAME
-    FileHandle::Rollback - FileHandle with commit and rollback
+    FileHandle::Rollback - FileHandle with commit, rollback, and journaled
+    crash recovery
 
 SYNOPSIS
       use FileHandle::Rollback;
@@ -77,8 +78,40 @@ DESCRIPTION
     opens the file with +< . However, if > is anywhere in the path then
     FileHandle::Rollback will create the file if it doesn't already exist.
 
+  autmatic crash recovery
+
+    This feature journals the data being written to your file so that if
+    there is a server crash while the data is being written,
+    FileHandle::Rollback automatically finishes the data write. In short,
+    crash recovery protects you against invalid data formats: either all the
+    data is written or none of it is.
+
+    To implement crash recovery, simply add the "journal" option to the
+    "new" command. "journal" consists of an anonymous array containing two
+    elements:
+
+     $fh = FileHandle::Rollback->new('members.db', journal=>['members.journal', 'members.sem'])
+        or die $!;
+
+    The first element is the file name of a "journal" file, a file where
+    data is temporarily stored before being written to the real data file.
+    The second element is the file name of a "semaphore" file whose
+    existence indicates that data is being written to the data file.
+
+    When a FileHandle::Rollback object is created with journaling, the first
+    thing it does is check if the semaphore file exists. If that file does
+    exist, then the object knows that there was a crash the last time the
+    data was being written. The object pulls the stored data from the
+    journal file and tries again to write the data to the data file. Once
+    the data is fully written, it deletes the semaphore and journal files.
+
+    This form of crash recovery is dependent on the atomicity of file
+    creation and deletion on your computer, so on some systems (particularly
+    NFS) there is a small chance that crash recovery will not work properly.
+    Caveat programmer.
+
 TERMS AND CONDITIONS
-    Copyright (C) 2002 Miko O'Sullivan
+    Copyright (C) 2002, 2003 Miko O'Sullivan
 
     This library is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as published by
@@ -117,4 +150,9 @@ VERSION
   
       Version 1.04, July 10, 2002
       Yet another small but important correction to documentation.  Sheesh.
+  
+      and then a long time went by...
+  
+      Version 1.05, June 12, 2003
+      Added journaled automatic crash recovery
 

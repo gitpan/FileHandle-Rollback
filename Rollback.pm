@@ -9,12 +9,12 @@ use vars qw($VERSION @ISA);
 
 
 # version
-$VERSION = '1.04';
+$VERSION = '1.05';
 
 
 =head1 NAME
 
-FileHandle::Rollback - FileHandle with commit and rollback
+FileHandle::Rollback - FileHandle with commit, rollback, and journaled crash recovery
 
 =head1 SYNOPSIS
 
@@ -49,19 +49,23 @@ FileHandle::Rollback can be installed with the usual routine:
 	make test
 	make install
 
-You can also just copy Rollback.pm into the FileHandle/ directory of one of your library trees.
+You can also just copy Rollback.pm into the FileHandle/ directory of one of
+your library trees.
 
 
 =head1 DESCRIPTION
 
-FileHandle::Rollback allows you to open a filehandle, write data to that handle, read the data back exactly as if 
-it were already in the file, then cancel the whole transaction if you choose. FileHandle::Rollback works like 
-FileHandle, with a few important differences, most notably the addition of C<rollback()> and C<commit()>.
-Those additions and differences are noted below.
+FileHandle::Rollback allows you to open a filehandle, write data to that
+handle, read the data back exactly as if it were already in the file, then
+cancel the whole transaction if you choose. FileHandle::Rollback works like 
+FileHandle, with a few important differences, most notably the addition of
+C<rollback()> and C<commit()>. Those additions and differences are
+noted below.
 
 =head2 $fh->rollback()
 
-Cancels all changes since the last rollback, commit, or since you opened the file handle.
+Cancels all changes since the last rollback, commit, or since you opened the
+file handle.
 
 =head2 $fh->commit()
 
@@ -69,8 +73,8 @@ Writes changes to the file.
 
 =head2 $fh->flock($mode)
 
-The flock method locks the file like the built-in flock command.  Use the same mode arguments: 
-C<LOCK_SH>, C<LOCK_EX>, and C<LOCK_UN>.
+The flock method locks the file like the built-in flock command.  Use the same
+mode arguments: C<LOCK_SH>, C<LOCK_EX>, and C<LOCK_UN>.
 
   use Fcntl ':flock';
   
@@ -79,30 +83,62 @@ C<LOCK_SH>, C<LOCK_EX>, and C<LOCK_UN>.
 
 =head2 binmode
 
-FileHandle::Rollback only works in binmode, so it will automatically put itself into binmode.
+FileHandle::Rollback only works in binmode, so it will automatically put
+itself into binmode.
 
 =head2 read/write
 
-FileHandle::Rollback only works in read/write mode.  Regardless of what you begin the file path with 
-(+<, +>, >, >>, etc) FileHandle::Rollback opens the file with +< .  However, if > is anywhere in the path
-then FileHandle::Rollback will create the file if it doesn't already exist.
+FileHandle::Rollback only works in read/write mode.  Regardless of what you
+begin the file path with (+<, +>, >, >>, etc) FileHandle::Rollback opens the
+file with +< .  However, if > is anywhere in the path then
+FileHandle::Rollback will create the file if it doesn't already exist.
 
+=head2 autmatic crash recovery
 
+This feature journals the data being written to your file so that if there is
+a server crash while the data is being written, FileHandle::Rollback 
+automatically finishes the data write.  In short, crash recovery protects you against
+invalid data formats: either all the data is written or none of it is.
+
+To implement crash recovery, simply add the C<journal> option to the C<new>
+command. C<journal> consists of an anonymous array containing two elements:
+
+ $fh = FileHandle::Rollback->new('members.db', journal=>['members.journal', 'members.sem'])
+    or die $!;
+
+The first element is the file name of a "journal" file, a file where 
+data is temporarily stored before being written to the real data file.
+The second element is the file name of a "semaphore" file whose
+existence indicates that data is being written to the data file.
+
+When a FileHandle::Rollback object is created with journaling, the first thing
+it does is check if the semaphore file exists.  If that file does exist, then
+the object knows that there was a crash the last time the data was being written.
+The object pulls the stored data from the journal file and tries again to write
+the data to the data file.  Once the data is fully written, it deletes the 
+semaphore and journal files.
+
+This form of crash recovery is dependent on the atomicity of file
+creation and deletion on your computer, so on some systems (particularly
+NFS) there is a small chance that crash recovery will not work properly.
+Caveat programmer.
 
 =cut
 
 
-
+#--------------------------------------------------------------------------------------
+# new
+# 
 sub new {
-	my($class, $path) = @_;
+	my($class, $path, %opts) = @_;
 	my $fh = gensym;
 	my $orgpath = $path;
-
+	
 	# file MUST be opened read/write
 	# so ignore open directives
-	$path =~ s|^[\+\<\> ]+||;
+	$path =~ s|^[\+\<\> ]+||s;
 	
-	# if file was opend for creation
+	# if file was opened for creation
 	if (
 		(! -e $path) && 
 		($orgpath =~ m|\>|)
@@ -114,9 +150,14 @@ sub new {
 	# set open string to read/write
 	$path = "+< $path";
 	
-	${*$fh} = tie *$fh, 'FileHandle::Rollback::Tie', $path;
+	${*$fh} = tie *$fh, 'FileHandle::Rollback::Tie', $path, %opts;
 	bless $fh, $class;
+	return $fh;
 }
+# 
+# new
+#--------------------------------------------------------------------------------------
+
 
 sub seek {
     my $fh = shift;
@@ -149,30 +190,22 @@ sub commit {
 }
 
 
-#########################################################################################
+###############################################################################
 # FileHandle::Rollback::Tie
 # 
 package FileHandle::Rollback::Tie;
-
 use strict;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
+use vars qw($VERSION);
 use IO::Seekable;
 use FileHandle;
 
-require Exporter;
 use 5.000;
-
-@ISA = qw(Exporter);
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-@EXPORT = qw();
 $VERSION = '0.06';
 
 
 # Preloaded methods go here.
 sub TIEHANDLE {
-	my( $class, $openstr) = @_;
+	my($class, $openstr, %opts) = @_;
 	my $self = bless({}, $class);
 	my ($fh);
 	
@@ -192,6 +225,41 @@ sub TIEHANDLE {
 	
 	# set up first rollback segment
 	$self->rollback;
+
+	# hold on to journal options
+	if ($opts{'journal'}) {
+		$self->{'journal'} = {
+			journal   => $opts{'journal'}->[0], 
+			semaphore => $opts{'journal'}->[1],
+			};
+		
+		# if the semaphore file exists, that means
+		# that there was a crash during the last write attempt
+		if (-e($self->{'journal'}->{'semaphore'})) {
+			my ($journal, @frozen);
+			require Data::Taxi;
+			
+			$journal = FileHandle->new($self->{'journal'}->{'journal'})
+				or return(undef);
+			
+			while (my $line = <$journal>)
+				{push @frozen, $line}
+			
+			undef $journal;
+			
+			$self->{'blocks'} = Data::Taxi::thaw(join('', @frozen));
+			
+			if ($self->commit(skip_journal=>1)) {
+				unlink($self->{'journal'}->{'semaphore'})
+					or return(undef);
+				unlink($self->{'journal'}->{'journal'})
+					or return(undef);
+			}
+			
+			else
+				{return undef}
+		}
+	}
 	
 	return $self;
 }
@@ -209,14 +277,39 @@ sub rollback {
 }
 
 sub commit {
-	my ($self) = @_;
+	my ($self, %opts) = @_;
 	my $fh = $self->{'fh'};
+	
+	# journal if called upon to do so
+	if ($self->{'journal'} && (! $opts{'skip_journal'}) ) {
+		my ($journal, $taxi);
+		require Data::Taxi;
+		
+		$journal = FileHandle->new("> $self->{'journal'}->{'journal'}")
+			or return(undef);
+		
+		$taxi = Data::Taxi::freeze($self->{'blocks'});
+		print $journal $taxi;
+		$journal->close();
+		undef $journal;
+		
+		FileHandle->new("> $self->{'journal'}->{'semaphore'}")
+			or return(undef);
+	}
 	
 	# write data blocks
 	foreach my $block (@{$self->{'blocks'}}) {
 		$fh->seek($block->{'pos'}, 0);
 		my $res = print $fh $block->{'data'};
 		$res or return(undef);
+	}
+	
+	# remove semaphore
+	if ($self->{'journal'} && (! $opts{'skip_journal'}) ) {
+		unlink($self->{'journal'}->{'semaphore'})
+			or return(undef);
+		unlink($self->{'journal'}->{'journal'})
+			or return(undef);
 	}
 	
 	# reset
@@ -536,7 +629,7 @@ sub BINMODE {
 
 # 
 # FileHandle::Rollback::Tie
-#########################################################################################
+###############################################################################
 
 
 # return true
@@ -548,7 +641,7 @@ __END__
 
 =head1 TERMS AND CONDITIONS
 
-Copyright (C) 2002 Miko O'Sullivan
+Copyright (C) 2002, 2003 Miko O'Sullivan
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -562,7 +655,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+02111-1307  USA
 
 
 =head1 AUTHOR
@@ -570,9 +664,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Miko O'Sullivan
 F<miko@idocs.com>
 
-A lot of the code in this module was copied from MemHandle.pm by Sheridan C. Rawlins.  In fact, 
-I started with Sheridan's module and just changed code until it worked the way I wanted, so
-Sheridan gets a lot of credit for FileHandle::Rollback.
+A lot of the code in this module was copied from MemHandle.pm by Sheridan C.
+Rawlins.  In fact, I started with Sheridan's module and just changed code
+until it worked the way I wanted, so Sheridan gets a lot of credit for
+FileHandle::Rollback.
 
 =head1 VERSION
 
@@ -590,6 +685,11 @@ Sheridan gets a lot of credit for FileHandle::Rollback.
   
   Version 1.04, July 10, 2002
   Yet another small but important correction to documentation.  Sheesh.
+  
+  and then a long time went by...
+  
+  Version 1.05, June 12, 2003
+  Added journaled automatic crash recovery
 
 
 =cut
