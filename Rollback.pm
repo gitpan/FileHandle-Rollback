@@ -9,7 +9,7 @@ use vars qw($VERSION @ISA);
 
 
 # version
-$VERSION = '1.02';
+$VERSION = '1.03';
 
 
 =head1 NAME
@@ -55,7 +55,7 @@ Cancels all changes since the last rollback, commit, or since you opened the fil
 
 Writes changes to the file.
 
-=head2 $fh->commit(flock, $mode)
+=head2 $fh->flock($mode)
 
 The flock method locks the file like the built-in flock command.  Use the same mode arguments: 
 C<LOCK_SH>, C<LOCK_EX>, and C<LOCK_UN>.
@@ -572,7 +572,10 @@ Sheridan gets a lot of credit for FileHandle::Rollback.
   
   Version 1.02, June 30, 2002
   Small but important correction to documentation
-  
+
+  Version 1.02, July 1, 2002
+  Another small but important correction to documentation.  Sheesh.
+
 
 =back
 =cut
