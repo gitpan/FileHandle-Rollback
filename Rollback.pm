@@ -9,7 +9,7 @@ use vars qw($VERSION @ISA);
 
 
 # version
-$VERSION = '1.03';
+$VERSION = '1.04';
 
 
 =head1 NAME
@@ -39,6 +39,18 @@ FileHandle::Rollback - FileHandle with commit and rollback
   
   # or, if you want save the changes:
   $fh->commit;
+
+=head1 INSTALLATION
+
+FileHandle::Rollback can be installed with the usual routine:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+You can also just copy Rollback.pm into the FileHandle/ directory of one of your library trees.
+
 
 =head1 DESCRIPTION
 
@@ -572,10 +584,12 @@ Sheridan gets a lot of credit for FileHandle::Rollback.
   
   Version 1.02, June 30, 2002
   Small but important correction to documentation
+  
+  Version 1.03, July 1, 2002
+  Another small but important correction to documentation.
+  
+  Version 1.04, July 10, 2002
+  Yet another small but important correction to documentation.  Sheesh.
 
-  Version 1.02, July 1, 2002
-  Another small but important correction to documentation.  Sheesh.
 
-
-=back
 =cut

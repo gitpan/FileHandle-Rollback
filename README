@@ -1,35 +1,120 @@
-FileHandle/Rollback version 0.01
-================================
+FileHandle/Rollback version 1.04
+========================
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+NAME
+    FileHandle::Rollback - FileHandle with commit and rollback
 
-A README file is required for CPAN modules since CPAN extracts the
-README file from a module distribution so that people browsing the
-archive can use it get an idea of the modules uses. It is usually a
-good idea to provide version information here so that people can
-decide whether fixes for the module are worth downloading.
+SYNOPSIS
+      use FileHandle::Rollback;
+      my ($fh);
+  
+      # open file handle
+      $fh = FileHandle::Rollback->new("+< $path")
+        or die "cannot open filehandle: $!";
+  
+      # put some data at a specific address
+      $fh->seek(80, 0);
+      print $fh '1500';
+  
+      # read some data, partially including data 
+      # that was written in this rollback segment
+      $fh->seek(70, 0);
+      $fh->read($data, 100);
+  
+      # if you want to cancel the changes:
+      $fh->rollback;
+  
+      # or, if you want save the changes:
+      $fh->commit;
 
 INSTALLATION
+    FileHandle::Rollback can be installed with the usual routine:
 
-To install this module type the following:
+            perl Makefile.PL
+            make
+            make test
+            make install
 
-   perl Makefile.PL
-   make
-   make test
-   make install
+    You can also just copy Rollback.pm into the FileHandle/ directory of one
+    of your library trees.
 
-DEPENDENCIES
+DESCRIPTION
+    FileHandle::Rollback allows you to open a filehandle, write data to that
+    handle, read the data back exactly as if it were already in the file,
+    then cancel the whole transaction if you choose. FileHandle::Rollback
+    works like FileHandle, with a few important differences, most notably
+    the addition of "rollback()" and "commit()". Those additions and
+    differences are noted below.
 
-This module requires these other modules and libraries:
+  $fh->rollback()
 
-  blah blah blah
+    Cancels all changes since the last rollback, commit, or since you opened
+    the file handle.
 
-COPYRIGHT AND LICENCE
+  $fh->commit()
 
-Put the correct copyright and licence information here.
+    Writes changes to the file.
 
-Copyright (C) 2002 A. U. Thor blah blah blah
+  $fh->flock($mode)
+
+    The flock method locks the file like the built-in flock command. Use the
+    same mode arguments: "LOCK_SH", "LOCK_EX", and "LOCK_UN".
+
+      use Fcntl ':flock';
+  
+      unless ($fh->flock(LOCK_EX))
+        {die "cannot lock filehandle: $!"}
+
+  binmode
+
+    FileHandle::Rollback only works in binmode, so it will automatically put
+    itself into binmode.
+
+  read/write
+
+    FileHandle::Rollback only works in read/write mode. Regardless of what
+    you begin the file path with (+<, +>, >, >>, etc) FileHandle::Rollback
+    opens the file with +< . However, if > is anywhere in the path then
+    FileHandle::Rollback will create the file if it doesn't already exist.
+
+TERMS AND CONDITIONS
+    Copyright (C) 2002 Miko O'Sullivan
+
+    This library is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 2.1 of the License, or (at
+    your option) any later version.
+
+    This library is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
+    General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this library; if not, write to the Free Software Foundation,
+    Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+AUTHOR
+    Miko O'Sullivan miko@idocs.com
+
+    A lot of the code in this module was copied from MemHandle.pm by
+    Sheridan C. Rawlins. In fact, I started with Sheridan's module and just
+    changed code until it worked the way I wanted, so Sheridan gets a lot of
+    credit for FileHandle::Rollback.
+
+VERSION
+      Version 1.00, June 29, 2002
+      First public release
+  
+      Version 1.01, June 30, 2002
+      Minor tweaks to 1.00
+  
+      Version 1.02, June 30, 2002
+      Small but important correction to documentation
+  
+      Version 1.03, July 1, 2002
+      Another small but important correction to documentation.
+  
+      Version 1.04, July 10, 2002
+      Yet another small but important correction to documentation.  Sheesh.
 

@@ -1,6 +1,6 @@
 Revision history for Perl extension FileHandle::Rollback.
 
-0.01  Mon Jul  1 19:49:52 2002
+0.01  Wed Jul 10 18:52:22 2002
 	- original version; created by h2xs 1.21 with options
 		-X -n FileHandle::Rollback
 
