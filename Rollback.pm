@@ -9,7 +9,7 @@ use vars qw($VERSION @ISA);
 
 
 # version
-$VERSION = '1.01';
+$VERSION = '1.02';
 
 
 =head1 NAME
@@ -558,19 +558,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Miko O'Sullivan
 F<miko@idocs.com>
 
+A lot of the code in this module was copied from MemHandle.pm by Sheridan C. Rawlins.  In fact, 
+I started with Sheridan's module and just changed code until it worked the way I wanted, so
+Sheridan gets a lot of credit for FileHandle::Rollback.
 
 =head1 VERSION
 
-=over 4
-
-=item Version 1.00, June 29, 2002
-
-First public release.
-
-=item Version 1.01, June 30, 2002
-
-Minor tweaks to 1.00
-
+  Version 1.00, June 29, 2002
+  First public release
+  
+  Version 1.01, June 30, 2002
+  Minor tweaks to 1.00
+  
+  Version 1.02, June 30, 2002
+  Small but important correction to documentation
+  
 
 =back
 =cut
