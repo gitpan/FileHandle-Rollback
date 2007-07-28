@@ -1,5 +1,5 @@
-FileHandle/Rollback version 1.05
-========================
+FileHandle::Rollback version 1.06
+=========================
 
 NAME
     FileHandle::Rollback - FileHandle with commit, rollback, and journaled
@@ -48,16 +48,13 @@ DESCRIPTION
     differences are noted below.
 
   $fh->rollback()
-
     Cancels all changes since the last rollback, commit, or since you opened
     the file handle.
 
   $fh->commit()
-
     Writes changes to the file.
 
   $fh->flock($mode)
-
     The flock method locks the file like the built-in flock command. Use the
     same mode arguments: "LOCK_SH", "LOCK_EX", and "LOCK_UN".
 
@@ -67,19 +64,16 @@ DESCRIPTION
         {die "cannot lock filehandle: $!"}
 
   binmode
-
     FileHandle::Rollback only works in binmode, so it will automatically put
     itself into binmode.
 
   read/write
-
     FileHandle::Rollback only works in read/write mode. Regardless of what
     you begin the file path with (+<, +>, >, >>, etc) FileHandle::Rollback
     opens the file with +< . However, if > is anywhere in the path then
     FileHandle::Rollback will create the file if it doesn't already exist.
 
   autmatic crash recovery
-
     This feature journals the data being written to your file so that if
     there is a server crash while the data is being written,
     FileHandle::Rollback automatically finishes the data write. In short,
@@ -155,4 +149,7 @@ VERSION
   
       Version 1.05, June 12, 2003
       Added journaled automatic crash recovery
+
+      Version 1.06, July 28, 2007
+      No changes to module, changed bogus package for CPAN
 

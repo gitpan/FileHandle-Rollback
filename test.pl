@@ -15,6 +15,7 @@ my $orglen = length($org);
 
 reset_file($path, $org);
 
+
 #------------------------------------------------------
 # test: write block
 # 
@@ -86,6 +87,7 @@ reset_file($path, $org);
 #------------------------------------------------------
 
 
+
 #------------------------------------------------------
 # check committed file
 # 
@@ -104,6 +106,7 @@ reset_file($path, $org);
 #------------------------------------------------------
 
 
+
 #------------------------------------------------------
 # write out some lines to the test file
 # 
@@ -119,13 +122,14 @@ a
 #------------------------------------------------------
 
 
+
 #------------------------------------------------------
 # test line reading
 # 
 {
-	my ($fh, $code);
-	my $currtest = 7;
+	my ($fh, $code, $currtest);
 	
+	$currtest = 7;
 	$code = 'abcde';
 	
 	$fh = FileHandle::Rollback->new("+< $path")
@@ -149,6 +153,7 @@ a
 #------------------------------------------------------
 
 
+
 # remove test file
 unlink $path
 	or die "unable to delete test file: $!";
@@ -169,6 +174,7 @@ sub reset_file {
 	$rfh = FileHandle->new("> $path")
 		or die "cannot open for write";
 	
+	binmode $rfh;
 	print $rfh $content;
 }
 # 

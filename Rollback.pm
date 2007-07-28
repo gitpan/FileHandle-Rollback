@@ -7,9 +7,8 @@ use 5.000;
 use vars qw($VERSION @ISA);
 @ISA = qw(IO::Handle IO::Seekable);
 
-
 # version
-$VERSION = '1.05';
+$VERSION = '1.06';
 
 
 =head1 NAME
@@ -690,6 +689,9 @@ FileHandle::Rollback.
   
   Version 1.05, June 12, 2003
   Added journaled automatic crash recovery
+
+  Version 1.06, July 28, 2007
+  No changes to module, changed bogus package for CPAN
 
 
 =cut
